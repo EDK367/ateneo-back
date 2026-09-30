@@ -1,4 +1,7 @@
 # compiled output
+# MongoDB keyfiles (secretos - transferir de forma segura, no commitear)
+mongo-keyfile
+mongo-docker/keyfile
 /dist
 /node_modules
 /build
