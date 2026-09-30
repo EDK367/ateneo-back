@@ -53,6 +53,9 @@ importers:
       mongoose:
         specifier: ^9.10.3
         version: 9.10.3
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
       passport:
         specifier: ^0.7.0
         version: 0.7.0

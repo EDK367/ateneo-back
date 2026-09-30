@@ -4,12 +4,16 @@ import { AppService } from './app.service.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation.js';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module.js';
+import { UsersModule } from './users/users.module.js';
+import { APP_GUARD} from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt.guard.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      validationSchema: envValidationSchema
+      validationSchema: envValidationSchema,
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
@@ -17,8 +21,16 @@ import { MongooseModule } from '@nestjs/mongoose';
         uri: config.get<string>('DB_MONGO_URI'),
       }),
     }),
+    AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
