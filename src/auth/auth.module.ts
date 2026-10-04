@@ -4,12 +4,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../users/schemas/user.schema.js';
-import { AuthService } from './service/auth.service.js';
+import { User, UserSchema } from '../user/schemas/user.schema.js';
+import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { JwtAuthGuard } from './guards/jwt.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
-import { AuthController } from './controller/auth.controller.js';
+import { AuthController } from './auth.controller.js';
 
 @Module({
   imports: [

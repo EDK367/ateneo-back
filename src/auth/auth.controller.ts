@@ -1,9 +1,9 @@
 import { Controller } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AuthService } from '../service/auth.service.js';
-import { Public } from '../decorators/public.decorator.js';
-import { LoginDto, RegisterDto } from '../dto/auth.dto.js';
-import { CurrentUser } from '../decorators/user.decorator.js';
+import { AuthService } from './auth.service.js';
+import { Public } from './decorators/public.decorator.js';
+import { LoginDto, RegisterDto } from './dto/auth.dto.js';
+import { CurrentUser } from './decorators/user.decorator.js';
 import { Body, Get, Post, HttpCode, HttpStatus } from '@nestjs/common';
 
 @ApiTags('auth')

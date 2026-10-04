@@ -22,11 +22,11 @@ export class RegisterDto {
 
 export class LoginDto {
 
-    @ApiProperty({ example: 'edk367' })
+    @ApiProperty({ example: 'admin' })
     @IsString()
     user: string;
 
-    @ApiProperty({ example: '12345678' })
+    @ApiProperty({ example: 'Password' })
     @IsString()
     password: string;
 }

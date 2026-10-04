@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from '../../users/schemas/user.schema.js';
+import { User, UserDocument } from '../user/schemas/user.schema.js';
 import { JwtService } from '@nestjs/jwt';
-import { LoginDto, RegisterDto } from '../dto/auth.dto.js';
+import { LoginDto, RegisterDto } from './dto/auth.dto.js';
 import bcrypt from 'bcrypt'
+import { bytes } from 'stream/consumers';
 
 @Injectable()
 export class AuthService {
@@ -41,9 +42,7 @@ export class AuthService {
             .select('+password');
 
         if (!user || !user.isActive) throw new UnauthorizedException('Credenciales inválidas');
-
         const ok = await bcrypt.compare(dto.password, user.password);
-
         if (!ok) throw new UnauthorizedException('Credenciales inválidas');
 
         return this.buildToken(user);
