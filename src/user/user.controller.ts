@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Delete, Get, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -15,4 +15,9 @@ export class UserController {
   findAll() {
     return this.userService.findAll();
   }
+
+  @Delete(':id')
+  @Roles(Role.Admin)
+  delete(@Param('id') id: string) { }
+
 }
