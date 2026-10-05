@@ -18,6 +18,8 @@ export class UserController {
 
   @Delete(':id')
   @Roles(Role.Admin)
-  delete(@Param('id') id: string) { }
+  delete(@Param('id') id: string) {
+    return this.userService.delete(id);
+  }
 
 }

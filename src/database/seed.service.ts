@@ -53,7 +53,7 @@ export class SeedService implements OnApplicationBootstrap {
     this.logger.log(`Usuario creado: ${admin.username} (${admin.email})`);
   }
 
-  private async seedUser2() {
+  private async seedUser1() {
     const username = 'edk';
     const email = 'edk@ateneo.com'.toLowerCase();
     const password =
@@ -83,7 +83,7 @@ export class SeedService implements OnApplicationBootstrap {
     this.logger.log(`Usuario creado: ${user.username} (${user.email})`);
   }
 
-  private async seedUser1() {
+  private async seedUser2() {
     const username = 'user';
     const email = 'user@ateneo.com'.toLowerCase();
     const password =
