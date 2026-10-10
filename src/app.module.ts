@@ -14,6 +14,7 @@ import { FileController } from './files/file.controller.js';
 import { SharesController } from './shares/shares.controller.js';
 import { TrashController } from './trash/trash.controller.js';
 import { ReportController } from './reports/report.controller.js';
+import { FolderService } from './folders/folder.service.js';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReportController } from './reports/report.controller.js';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    FolderService,
   ],
 })
 export class AppModule {}

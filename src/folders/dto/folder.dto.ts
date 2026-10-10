@@ -10,6 +10,7 @@ import {
 import { Types } from 'mongoose';
 
 export class CreateFolderDto {
+
   @ApiProperty({ example: 'Mi Carpeta' })
   @IsString()
   @MaxLength(100)
@@ -20,5 +21,6 @@ export class CreateFolderDto {
   @IsString()
   @IsOptional()
   @IsMongoId()
-  parenId?: string;
+  parentId?: string;
+
 }
