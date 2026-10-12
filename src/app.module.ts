@@ -7,14 +7,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module.js';
 import { UserModule } from './user/user.module.js';
 import { SeedModule } from './database/seed.module.js';
+import { FolderModule } from './folders/folder.module.js';
+import { FileModule } from './files/file.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard.js';
-import { FolderController } from './folders/folder.controller.js';
-import { FileController } from './files/file.controller.js';
 import { SharesController } from './shares/shares.controller.js';
 import { TrashController } from './trash/trash.controller.js';
 import { ReportController } from './reports/report.controller.js';
-import { FolderService } from './folders/folder.service.js';
 
 @Module({
   imports: [
@@ -30,16 +29,22 @@ import { FolderService } from './folders/folder.service.js';
     }),
     AuthModule,
     UserModule,
+    FolderModule,
+    FileModule,
     SeedModule,
   ],
-  controllers: [AppController, FolderController, FileController, SharesController, TrashController, ReportController],
+  controllers: [
+    AppController,
+    SharesController,
+    TrashController,
+    ReportController,
+  ],
   providers: [
     AppService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    FolderService,
   ],
 })
 export class AppModule {}

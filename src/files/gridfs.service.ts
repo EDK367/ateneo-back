@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { Connection, mongo, Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import type { Connection } from 'mongoose';
 
+// servico para guardar los archivos
 @Injectable()
 export class GridFsService {
-
-  private bucket: mongo.GridFSBucket;
+  private bucket: mongoose.mongo.GridFSBucket;
 
   constructor(@InjectConnection() conn: Connection) {
-    this.bucket = new mongo.GridFSBucket(conn.db!, { bucketName: 'contents' });
+    this.bucket = new mongoose.mongo.GridFSBucket(conn.db!, { bucketName: 'contents' });
   }
 
   upload(filename: string, buffer: Buffer): Promise<Types.ObjectId> {
@@ -20,8 +21,18 @@ export class GridFsService {
     });
   }
 
-  download(id: Types.ObjectId): mongo.GridFSBucketReadStream {
+  download(id: Types.ObjectId): mongoose.mongo.GridFSBucketReadStream {
     return this.bucket.openDownloadStream(id);
+  }
+
+  readToBuffer(id: Types.ObjectId): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const stream = this.download(id);
+      const chunks: Buffer[] = [];
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      stream.on('error', reject);
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+    });
   }
 
   delete(id: Types.ObjectId): Promise<void> {

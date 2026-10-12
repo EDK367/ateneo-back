@@ -3,19 +3,16 @@ import {
   IsEnum,
   IsMongoId,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
-  Min,
   MinLength,
 } from 'class-validator';
-
 import { FileType } from '../schemas/file.schema.js';
 
 export class CreateFileDto {
 
-  @ApiProperty({ example: 'mi-documento' })
+  @ApiProperty({ example: 'mi-documento.txt' })
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
@@ -26,15 +23,46 @@ export class CreateFileDto {
   @IsEnum(FileType)
   type: FileType;
 
-  @ApiProperty({ example: '68f123456789abcdef123456' })
+  @ApiProperty({ example: '68f123456789abcdef123456', required: false })
   @IsOptional()
   @IsMongoId()
   folderId?: string;
 
-  @ApiProperty({ example: ['trabajo', 'importante'] })
+  @ApiProperty({ example: ['trabajo', 'importante'], required: false })
   @IsOptional()
   @IsString({ each: true })
   tags?: string[];
 
 }
 
+export class UploadFileDto {
+
+  @ApiProperty({ example: '68f123456789abcdef123456', required: false })
+  @IsOptional()
+  @IsMongoId()
+  folderId?: string;
+
+  @ApiProperty({ example: ['general'], required: false })
+  @IsOptional()
+  tags?: string[] | string;
+
+}
+
+export class RenameFileDto {
+
+  @ApiProperty({ example: 'nuevo-nombre.md' })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(120)
+  name: string;
+}
+
+export class MoveFileDto {
+
+  @ApiProperty({ example: '68f123456789abcdef123456', required: false, nullable: true })
+  @IsOptional()
+  @IsMongoId()
+  folderId?: string | null;
+
+}
