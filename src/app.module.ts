@@ -9,10 +9,10 @@ import { UserModule } from './user/user.module.js';
 import { SeedModule } from './database/seed.module.js';
 import { FolderModule } from './folders/folder.module.js';
 import { FileModule } from './files/file.module.js';
+import { TrashModule } from './trash/trash.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard.js';
 import { SharesController } from './shares/shares.controller.js';
-import { TrashController } from './trash/trash.controller.js';
 import { ReportController } from './reports/report.controller.js';
 
 @Module({
@@ -31,12 +31,12 @@ import { ReportController } from './reports/report.controller.js';
     UserModule,
     FolderModule,
     FileModule,
+    TrashModule,
     SeedModule,
   ],
   controllers: [
     AppController,
     SharesController,
-    TrashController,
     ReportController,
   ],
   providers: [

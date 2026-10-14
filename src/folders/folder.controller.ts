@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -53,5 +54,11 @@ export class FolderController {
     @Body() dto: RenameFolderDto,
   ) {
     return this.folderService.rename(user.userId, id, dto.name);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Mover una carpeta a la papelera' })
+  deleteFolder(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.folderService.moveToTrash(user.userId, id);
   }
 }

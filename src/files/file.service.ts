@@ -16,7 +16,8 @@ import { GridFsService } from './gridfs.service.js';
 export class FileService {
   constructor(
     @InjectModel(FileDoc.name) private readonly fileModel: Model<FileDocument>,
-    @InjectModel(Folder.name) private readonly folderModel: Model<FolderDocument>,
+    @InjectModel(Folder.name)
+    private readonly folderModel: Model<FolderDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly gridFsService: GridFsService,
   ) {}
@@ -25,8 +26,8 @@ export class FileService {
     userId: string,
     file: Express.Multer.File, // metadatos
     folderId?: string,
-    rawTags?: string[] | string,): Promise<FileDocument> {
-
+    rawTags?: string[] | string,
+  ): Promise<FileDocument> {
     if (!file) {
       throw new BadRequestException('El archivo es requerido');
     }
@@ -36,7 +37,9 @@ export class FileService {
     const isMd = lowerName.endsWith('.md');
 
     if (!isTxt && !isMd) {
-      throw new BadRequestException('Solo se permiten archivos en formato .txt y .md');
+      throw new BadRequestException(
+        'Solo se permiten archivos en formato .txt y .md',
+      );
     }
 
     const ownerId = new Types.ObjectId(userId);
@@ -64,7 +67,9 @@ export class FileService {
     });
 
     if (existing) {
-      throw new ConflictException('Ya existe un archivo con ese nombre en esta ubicación');
+      throw new ConflictException(
+        'Ya existe un archivo con ese nombre en esta ubicación',
+      );
     }
 
     let tags: string[] = [];
@@ -80,7 +85,10 @@ export class FileService {
         .filter(Boolean);
     }
 
-    const gridFsId = await this.gridFsService.upload(file.originalname, file.buffer);
+    const gridFsId = await this.gridFsService.upload(
+      file.originalname,
+      file.buffer,
+    );
     const fileType = isMd ? FileType.Md : FileType.Txt;
 
     const fileDoc = await this.fileModel.create({
@@ -103,7 +111,6 @@ export class FileService {
   }
 
   async download(userId: string, fileId: string) {
-
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
@@ -122,7 +129,6 @@ export class FileService {
   }
 
   async getRaw(userId: string, fileId: string) {
-
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
@@ -138,11 +144,14 @@ export class FileService {
 
     const buffer = await this.gridFsService.readToBuffer(fileDoc.gridFsId);
 
-    return { file: fileDoc, content: buffer.toString('utf-8'), };
+    return { file: fileDoc, content: buffer.toString('utf-8') };
   }
 
-  async rename(userId: string, fileId: string, newName: string): Promise<FileDocument> {
-
+  async rename(
+    userId: string,
+    fileId: string,
+    newName: string,
+  ): Promise<FileDocument> {
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
     const trimmed = newName.trim();
@@ -160,7 +169,9 @@ export class FileService {
     const expectedExtension = `.${fileDoc.type}`;
 
     if (!trimmed.toLowerCase().endsWith(expectedExtension)) {
-      throw new BadRequestException(`El nombre del archivo debe conservar la extensión ${expectedExtension}`);
+      throw new BadRequestException(
+        `El nombre del archivo debe conservar la extensión ${expectedExtension}`,
+      );
     }
 
     const collision = await this.fileModel.findOne({
@@ -172,15 +183,20 @@ export class FileService {
     });
 
     if (collision) {
-      throw new ConflictException('Ya existe un archivo con ese nombre en esta ubicación');
+      throw new ConflictException(
+        'Ya existe un archivo con ese nombre en esta ubicación',
+      );
     }
 
     fileDoc.name = trimmed;
     return fileDoc.save();
   }
 
-  async move(userId: string, fileId: string, newFolderId?: string | null): Promise<FileDocument> {
-    
+  async move(
+    userId: string,
+    fileId: string,
+    newFolderId?: string | null,
+  ): Promise<FileDocument> {
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
@@ -217,10 +233,33 @@ export class FileService {
     });
 
     if (collision) {
-      throw new ConflictException('Ya existe un archivo con ese nombre en la carpeta destino');
+      throw new ConflictException(
+        'Ya existe un archivo con ese nombre en la carpeta destino',
+      );
     }
 
     fileDoc.folderId = nextFolderId;
+    return fileDoc.save();
+  }
+
+  async moveToTrash(userId: string, fileId: string): Promise<FileDocument> {
+    const ownerId = new Types.ObjectId(userId);
+    const targetFileId = new Types.ObjectId(fileId);
+
+    const fileDoc = await this.fileModel.findOne({
+      _id: targetFileId,
+      ownerId,
+      deletedAt: null,
+    });
+
+    if (!fileDoc) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
+
+    fileDoc.deletedAt = new Date();
+    // asignamos su propio ID para determinar que es raiz
+    fileDoc.trashRootId = fileDoc._id;
+
     return fileDoc.save();
   }
 }

@@ -222,4 +222,55 @@ export class FolderService {
     folder.name = name.trim();
     return folder.save();
   }
+
+  async moveToTrash(userId: string, folderId: string): Promise<FolderDocument> {
+
+    const ownerId = new Types.ObjectId(userId);
+    const targetFolderId = new Types.ObjectId(folderId);
+
+    const folder = await this.folderModel.findOne({
+      _id: targetFolderId,
+      ownerId,
+      deletedAt: null,
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
+
+    const now = new Date();
+    folder.deletedAt = new Date();
+    folder.trashRootId = folder._id;
+    await folder.save();
+
+    const descendantFolders = await this.folderModel.find({
+      ownerId,
+      ancestors: folder._id,
+      deletedAt: null,
+    });
+
+    const descendantFolderIds = descendantFolders.map((f) => f._id);
+
+    // si existen id ancestors entonces se buscan que coinicidan en la lsita y se actualizan
+    if (descendantFolderIds.length > 0) {
+      await this.folderModel.updateMany(
+        { _id: { $in: descendantFolderIds } },
+        { $set: { deletedAt: now, trashRootId: folder._id } },
+      );
+
+    }
+
+    // elminacion de los file de manera masiva
+    const allFolderIds = [folder._id, ...descendantFolderIds];
+    await this.fileModel.updateMany(
+      {
+        ownerId,
+        folderId: { $in: allFolderIds },
+        deletedAt: null,
+      },
+      { $set: { deletedAt: now, trashRootId: folder._id } },
+    );
+
+    return folder;
+  }
 }

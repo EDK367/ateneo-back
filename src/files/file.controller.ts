@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -99,5 +100,11 @@ export class FileController {
     @Body() dto: MoveFileDto,
   ) {
     return this.fileService.move(user.userId, id, dto.folderId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Mover un archivo a la papelera' })
+  deleteFile(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.fileService.moveToTrash(user.userId, id);
   }
 }
