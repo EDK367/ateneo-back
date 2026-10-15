@@ -12,7 +12,7 @@ import { FileModule } from './files/file.module.js';
 import { TrashModule } from './trash/trash.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard.js';
-import { SharesController } from './shares/shares.controller.js';
+import { SharesModule } from './shares/shares.module.js';
 import { ReportController } from './reports/report.controller.js';
 
 @Module({
@@ -32,11 +32,11 @@ import { ReportController } from './reports/report.controller.js';
     FolderModule,
     FileModule,
     TrashModule,
+    SharesModule,
     SeedModule,
   ],
   controllers: [
     AppController,
-    SharesController,
     ReportController,
   ],
   providers: [

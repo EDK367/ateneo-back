@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId } from 'class-validator';
-
 import { SharePermission, ShareResourceType } from '../schemas/share.schema.js';
 
 export class CreateShareDto {
@@ -19,5 +18,10 @@ export class CreateShareDto {
   @ApiProperty({ example: SharePermission.Read, enum: SharePermission })
   @IsEnum(SharePermission)
   permission: SharePermission;
+}
 
+export class UpdateShareDto {
+  @ApiProperty({ example: SharePermission.Edit, enum: SharePermission })
+  @IsEnum(SharePermission)
+  permission: SharePermission;
 }
