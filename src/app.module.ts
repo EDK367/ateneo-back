@@ -13,7 +13,8 @@ import { TrashModule } from './trash/trash.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard.js';
 import { SharesModule } from './shares/shares.module.js';
-import { ReportController } from './reports/report.controller.js';
+import { ActivityModule } from './activity/activity.module.js';
+import { ReportModule } from './reports/report.module.js';
 
 @Module({
   imports: [
@@ -33,11 +34,12 @@ import { ReportController } from './reports/report.controller.js';
     FileModule,
     TrashModule,
     SharesModule,
+    ActivityModule,
+    ReportModule,
     SeedModule,
   ],
   controllers: [
     AppController,
-    ReportController,
   ],
   providers: [
     AppService,

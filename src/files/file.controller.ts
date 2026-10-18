@@ -57,6 +57,12 @@ export class FileController {
     return this.fileService.upload(user.userId, file, dto.folderId, dto.tags);
   }
 
+  @Get('recent')
+  @ApiOperation({ summary: 'Obtener archivos recientes del usuario' })
+  findRecent(@CurrentUser() user: any) {
+    return this.fileService.getRecent(user.userId);
+  }
+
   @Get(':id/download')
   @ApiOperation({ summary: 'Descargar archivo como stream directo desde GridFS' })
   async downloadFile(

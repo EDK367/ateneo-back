@@ -262,4 +262,15 @@ export class FileService {
 
     return fileDoc.save();
   }
+  async getRecent(userId: string, limit = 10): Promise<FileDocument[]> {
+    const ownerId = new Types.ObjectId(userId);
+    return this.fileModel
+      .find({
+        ownerId,
+        deletedAt: null,
+      })
+      .sort({ updatedAt: -1 })
+      .limit(limit)
+      .exec();
+  }
 }
