@@ -61,4 +61,51 @@ export class ReportService {
       sharedWithMeCount,
     };
   }
+
+  async getGlobalStats() {
+    const [
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      storageAggregate,
+      mdCount,
+      txtCount,
+      totalFiles,
+      foldersCount,
+      sharedCount,
+    ] = await Promise.all([
+      this.userModel.countDocuments(),
+      this.userModel.countDocuments({ isActive: true }),
+      this.userModel.countDocuments({ isActive: false }),
+      this.userModel.aggregate([
+        { $group: { _id: null, totalStorage: { $sum: '$storageUsedBytes' } } },
+      ]),
+      this.fileModel.countDocuments({ type: FileType.Md, deletedAt: null }),
+      this.fileModel.countDocuments({ type: FileType.Txt, deletedAt: null }),
+      this.fileModel.countDocuments({ deletedAt: null }),
+      this.folderModel.countDocuments({ deletedAt: null }),
+      this.shareModel.countDocuments(),
+    ]);
+
+    const storageUsedBytes = storageAggregate[0]?.totalStorage || 0;
+    const storageLimitBytes = 5 * 1024 * 1024 * 1024;
+    const storagePercentage =
+      storageLimitBytes > 0
+        ? Math.min(100, Math.round((storageUsedBytes / storageLimitBytes) * 100))
+        : 0;
+
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      storageUsedBytes,
+      storageLimitBytes,
+      storagePercentage,
+      mdCount,
+      txtCount,
+      totalFiles,
+      foldersCount,
+      sharedCount,
+    };
+  }
 }
