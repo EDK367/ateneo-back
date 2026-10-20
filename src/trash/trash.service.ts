@@ -20,31 +20,26 @@ export class TrashService {
     private readonly gridFsService: GridFsService,
   ) {}
 
-  async findAll(userId: string) {
+  async findAll(userId: string, role?: string) {
+    const filter: any = {
+      deletedAt: { $ne: null },
+      $or: [
+        { trashRootId: null },
+        { $expr: { $eq: ['$trashRootId', '$_id'] } },
+      ],
+    };
 
-    const ownerId = new Types.ObjectId(userId);
+    if (role !== 'admin') {
+      filter.ownerId = new Types.ObjectId(userId);
+    }
 
     const folders = await this.folderModel
-      .find({
-        ownerId,
-        deletedAt: { $ne: null },
-        $or: [
-          { trashRootId: null },
-          { $expr: { $eq: ['$trashRootId', '$_id'] } },
-        ],
-      })
+      .find(filter)
       .sort({ deletedAt: -1 })
       .exec();
 
     const files = await this.fileModel
-      .find({
-        ownerId,
-        deletedAt: { $ne: null },
-        $or: [
-          { trashRootId: null },
-          { $expr: { $eq: ['$trashRootId', '$_id'] } },
-        ],
-      })
+      .find(filter)
       .sort({ deletedAt: -1 })
       .exec();
 
@@ -54,25 +49,29 @@ export class TrashService {
     };
   }
 
-  async restore(userId: string, id: string) {
-
+  async restore(userId: string, id: string, role?: string) {
     const ownerId = new Types.ObjectId(userId);
     const targetId = new Types.ObjectId(id);
 
-    const folder = await this.folderModel.findOne({
+    const folderFilter: any = {
       _id: targetId,
-      ownerId,
       deletedAt: { $ne: null },
-    });
+    };
+    if (role !== 'admin') {
+      folderFilter.ownerId = ownerId;
+    }
+
+    const folder = await this.folderModel.findOne(folderFilter);
 
     if (folder) {
+      const folderOwnerId = folder.ownerId;
       let nextParentId: Types.ObjectId | null = null;
       let newAncestors: Types.ObjectId[] = [];
 
       if (folder.parentId) {
         const parent = await this.folderModel.findOne({
           _id: folder.parentId,
-          ownerId,
+          ownerId: folderOwnerId,
           deletedAt: null,
         });
 
@@ -84,7 +83,7 @@ export class TrashService {
 
       const collision = await this.folderModel.findOne({
         _id: { $ne: folder._id },
-        ownerId,
+        ownerId: folderOwnerId,
         parentId: nextParentId,
         name: folder.name,
         deletedAt: null,
@@ -103,12 +102,11 @@ export class TrashService {
       await folder.save();
 
       const descendants = await this.folderModel.find({
-        ownerId,
+        ownerId: folderOwnerId,
         ancestors: folder._id,
       });
 
       for (const desc of descendants) {
-
         const idx = desc.ancestors.findIndex((a) => a.equals(folder._id));
         if (idx !== -1) {
           const childSuffix = desc.ancestors.slice(idx + 1);
@@ -118,31 +116,36 @@ export class TrashService {
       }
 
       await this.folderModel.updateMany(
-        { ownerId, trashRootId: folder._id },
+        { ownerId: folderOwnerId, trashRootId: folder._id },
         { $set: { deletedAt: null, trashRootId: null } },
       );
 
       await this.fileModel.updateMany(
-        { ownerId, trashRootId: folder._id },
+        { ownerId: folderOwnerId, trashRootId: folder._id },
         { $set: { deletedAt: null, trashRootId: null } },
       );
 
       return folder;
     }
 
-    const fileDoc = await this.fileModel.findOne({
+    const fileFilter: any = {
       _id: targetId,
-      ownerId,
       deletedAt: { $ne: null },
-    });
+    };
+    if (role !== 'admin') {
+      fileFilter.ownerId = ownerId;
+    }
+
+    const fileDoc = await this.fileModel.findOne(fileFilter);
 
     if (fileDoc) {
+      const fileOwnerId = fileDoc.ownerId;
       let nextFolderId: Types.ObjectId | null = null;
 
       if (fileDoc.folderId) {
         const parent = await this.folderModel.findOne({
           _id: fileDoc.folderId,
-          ownerId,
+          ownerId: fileOwnerId,
           deletedAt: null,
         });
 
@@ -153,7 +156,7 @@ export class TrashService {
 
       const collision = await this.fileModel.findOne({
         _id: { $ne: fileDoc._id },
-        ownerId,
+        ownerId: fileOwnerId,
         folderId: nextFolderId,
         name: fileDoc.name,
         deletedAt: null,
@@ -172,26 +175,31 @@ export class TrashService {
     throw new NotFoundException('Elemento no encontrado en la papelera');
   }
 
-  async purge(userId: string, id: string) {
+  async purge(userId: string, id: string, role?: string) {
     const ownerId = new Types.ObjectId(userId);
     const targetId = new Types.ObjectId(id);
 
-    const folder = await this.folderModel.findOne({
+    const folderFilter: any = {
       _id: targetId,
-      ownerId,
       deletedAt: { $ne: null },
-    });
+    };
+    if (role !== 'admin') {
+      folderFilter.ownerId = ownerId;
+    }
+
+    const folder = await this.folderModel.findOne(folderFilter);
 
     if (folder) {
+      const folderOwnerId = folder.ownerId;
       const descendantFolders = await this.folderModel.find({
-        ownerId,
+        ownerId: folderOwnerId,
         ancestors: folder._id,
       });
 
       const allFolderIds = [folder._id, ...descendantFolders.map((f) => f._id)];
 
       const files = await this.fileModel.find({
-        ownerId,
+        ownerId: folderOwnerId,
         folderId: { $in: allFolderIds },
       });
 
@@ -204,73 +212,83 @@ export class TrashService {
       }
 
       if (totalBytes > 0) {
-        await this.userModel.findByIdAndUpdate(ownerId, {
+        await this.userModel.findByIdAndUpdate(folderOwnerId, {
           $inc: { storageUsedBytes: -totalBytes },
         });
       }
 
-      await this.fileModel.deleteMany({ _id: { $in: files.map((f) => f._id) } });
-      await this.folderModel.deleteMany({ _id: { $in: allFolderIds } });
+      await this.fileModel.deleteMany({
+        _id: { $in: files.map((f) => f._id) },
+      });
 
-      return { message: 'Carpeta eliminada definitivamente' };
+      await this.folderModel.deleteMany({
+        _id: { $in: allFolderIds },
+      });
+
+      return { message: 'Carpeta y su contenido purgados exitosamente' };
     }
 
-    const fileDoc = await this.fileModel.findOne({
+    const fileFilter: any = {
       _id: targetId,
-      ownerId,
       deletedAt: { $ne: null },
-    });
+    };
+    if (role !== 'admin') {
+      fileFilter.ownerId = ownerId;
+    }
+
+    const fileDoc = await this.fileModel.findOne(fileFilter);
 
     if (fileDoc) {
       try {
         await this.gridFsService.delete(fileDoc.gridFsId);
       } catch {}
 
-      if (fileDoc.size > 0) {
-        await this.userModel.findByIdAndUpdate(ownerId, {
+      if (fileDoc.size && fileDoc.size > 0) {
+        await this.userModel.findByIdAndUpdate(fileDoc.ownerId, {
           $inc: { storageUsedBytes: -fileDoc.size },
         });
       }
 
-      await this.fileModel.deleteOne({ _id: fileDoc._id });
+      await this.fileModel.findByIdAndDelete(fileDoc._id);
 
-      return { message: 'Archivo eliminado definitivamente' };
+      return { message: 'Archivo purgado exitosamente' };
     }
 
     throw new NotFoundException('Elemento no encontrado en la papelera');
   }
 
-  async emptyTrash(userId: string) {
-    const ownerId = new Types.ObjectId(userId);
-
-    const files = await this.fileModel.find({
-      ownerId,
+  async emptyTrash(userId: string, role?: string) {
+    const filter: any = {
       deletedAt: { $ne: null },
-    });
+    };
+    if (role !== 'admin') {
+      filter.ownerId = new Types.ObjectId(userId);
+    }
 
-    let totalBytes = 0;
+    const files = await this.fileModel.find(filter);
+
+    const userBytesMap = new Map<string, number>();
+
     for (const file of files) {
-      totalBytes += file.size || 0;
+      const bytes = file.size || 0;
+      const ownerStr = file.ownerId.toString();
+      userBytesMap.set(ownerStr, (userBytesMap.get(ownerStr) || 0) + bytes);
+
       try {
         await this.gridFsService.delete(file.gridFsId);
       } catch {}
     }
 
-    if (totalBytes > 0) {
-      await this.userModel.findByIdAndUpdate(ownerId, {
-        $inc: { storageUsedBytes: -totalBytes },
-      });
+    for (const [ownerStr, totalBytes] of userBytesMap.entries()) {
+      if (totalBytes > 0) {
+        await this.userModel.findByIdAndUpdate(new Types.ObjectId(ownerStr), {
+          $inc: { storageUsedBytes: -totalBytes },
+        });
+      }
     }
 
-    await this.fileModel.deleteMany({
-      ownerId,
-      deletedAt: { $ne: null },
-    });
-
-    await this.folderModel.deleteMany({
-      ownerId,
-      deletedAt: { $ne: null },
-    });
+    await this.fileModel.deleteMany(filter);
+    await this.folderModel.deleteMany(filter);
 
     return { message: 'Papelera vaciada exitosamente' };
   }

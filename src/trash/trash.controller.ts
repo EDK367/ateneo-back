@@ -12,24 +12,24 @@ export class TrashController {
   @Get()
   @ApiOperation({ summary: 'Listar elementos en la papelera' })
   findAllTrash(@CurrentUser() user: any) {
-    return this.trashService.findAll(user.userId);
+    return this.trashService.findAll(user.userId, user.role);
   }
 
   @Post('restore/:id')
   @ApiOperation({ summary: 'Restaurar elemento de la papelera' })
   restore(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.trashService.restore(user.userId, id);
+    return this.trashService.restore(user.userId, id, user.role);
   }
 
   @Delete('empty')
   @ApiOperation({ summary: 'Vaciar la papelera' })
   emptyTrash(@CurrentUser() user: any) {
-    return this.trashService.emptyTrash(user.userId);
+    return this.trashService.emptyTrash(user.userId, user.role);
   }
 
   @Delete('purge/:id')
   @ApiOperation({ summary: 'Eliminar definitivamente un elemento de la papelera' })
   delete(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.trashService.purge(user.userId, id);
+    return this.trashService.purge(user.userId, id, user.role);
   }
 }

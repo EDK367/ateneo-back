@@ -121,7 +121,22 @@ export class SharesService {
     return this.attachResources(shares);
   }
 
-  async findAll(userId: string) {
+  async findAll(userId: string, role?: string) {
+    if (role === 'admin') {
+      const shares = await this.shareModel
+        .find()
+        .populate('ownerId', 'username email')
+        .populate('sharedWithId', 'username email')
+        .sort({ createdAt: -1 })
+        .exec();
+
+      const enriched = await this.attachResources(shares);
+      return {
+        sharedWithMe: [],
+        sharedByMe: enriched,
+      };
+    }
+
     const [sharedWithMe, sharedByMe] = await Promise.all([
       this.findSharedWithMe(userId),
       this.findSharedByMe(userId),
@@ -162,6 +177,7 @@ export class SharesService {
     userId: string,
     shareId: string,
     permission: SharePermission,
+    role?: string,
   ): Promise<ShareDocument> {
     if (!Types.ObjectId.isValid(shareId)) {
       throw new BadRequestException('ID inválido');
@@ -176,7 +192,7 @@ export class SharesService {
       throw new NotFoundException('Recurso compartido no encontrado');
     }
 
-    if (!share.ownerId.equals(ownerId)) {
+    if (!share.ownerId.equals(ownerId) && role !== 'admin') {
       throw new ForbiddenException('Solo el propietario puede modificar los permisos');
     }
 
@@ -184,7 +200,7 @@ export class SharesService {
     return share.save();
   }
 
-  async delete(userId: string, shareId: string) {
+  async delete(userId: string, shareId: string, role?: string) {
     if (!Types.ObjectId.isValid(shareId)) {
       throw new BadRequestException('ID inválido');
     }
@@ -200,8 +216,9 @@ export class SharesService {
 
     const isOwner = share.ownerId.equals(userObjId);
     const isRecipient = share.sharedWithId.equals(userObjId);
+    const isAdmin = role === 'admin';
 
-    if (!isOwner && !isRecipient) {
+    if (!isOwner && !isRecipient && !isAdmin) {
       throw new ForbiddenException('No tienes permisos para eliminar este recurso compartido');
     }
 
