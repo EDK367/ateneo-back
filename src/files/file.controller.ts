@@ -108,6 +108,16 @@ export class FileController {
     return this.fileService.move(user.userId, id, dto.folderId);
   }
 
+  @Patch(':id/tags')
+  @ApiOperation({ summary: 'Actualizar etiquetas del archivo' })
+  updateTags(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: { tags: string[] | string },
+  ) {
+    return this.fileService.updateTags(user.userId, id, dto.tags);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Mover un archivo a la papelera' })
   deleteFile(@CurrentUser() user: any, @Param('id') id: string) {

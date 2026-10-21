@@ -12,7 +12,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.User)
   @ApiOperation({ summary: 'Obtener todos los usuarios' })
   findAll() {
     return this.userService.findAll();

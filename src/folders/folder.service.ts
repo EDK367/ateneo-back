@@ -10,6 +10,11 @@ import { Types } from 'mongoose';
 import { Folder, FolderDocument } from './schemas/folder.schema.js';
 import { FileDoc, FileDocument } from '../files/schemas/file.schema.js';
 import { CreateFolderDto } from './dto/folder.dto.js';
+import {
+  Share,
+  ShareDocument,
+  ShareResourceType,
+} from '../shares/schemas/share.schema.js';
 
 @Injectable()
 export class FolderService {
@@ -17,6 +22,7 @@ export class FolderService {
   constructor(
     @InjectModel(Folder.name) private readonly folderModel: Model<FolderDocument>,
     @InjectModel(FileDoc.name) private readonly fileModel: Model<FileDocument>,
+    @InjectModel(Share.name) private readonly shareModel: Model<ShareDocument>,
   ) {}
 
   async create(userId: string, dto: CreateFolderDto): Promise<FolderDocument> {
@@ -77,13 +83,30 @@ export class FolderService {
       });
 
       if (!currentFolder) {
+        const share = await this.shareModel.findOne({
+          resourceType: ShareResourceType.Folder,
+          resourceId: parentId,
+          sharedWithId: ownerId,
+        });
+
+        if (share) {
+          currentFolder = await this.folderModel.findOne({
+            _id: parentId,
+            deletedAt: null,
+          });
+        }
+      }
+
+      if (!currentFolder) {
         throw new NotFoundException('Carpeta no encontrada');
       }
     }
 
+    const folderOwnerId = currentFolder ? currentFolder.ownerId : ownerId;
+
     const folders = await this.folderModel
       .find({
-        ownerId,
+        ownerId: folderOwnerId,
         parentId,
         deletedAt: null,
       })
@@ -92,7 +115,7 @@ export class FolderService {
 
     const files = await this.fileModel
       .find({
-        ownerId,
+        ownerId: folderOwnerId,
         folderId: parentId,
         deletedAt: null,
       })

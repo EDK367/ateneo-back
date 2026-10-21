@@ -4,12 +4,14 @@ import { FolderController } from './folder.controller.js';
 import { FolderService } from './folder.service.js';
 import { Folder, FolderSchema } from './schemas/folder.schema.js';
 import { FileDoc, FileSchema } from '../files/schemas/file.schema.js';
+import { Share, ShareSchema } from '../shares/schemas/share.schema.js';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Folder.name, schema: FolderSchema },
       { name: FileDoc.name, schema: FileSchema },
+      { name: Share.name, schema: ShareSchema },
     ]),
   ],
   controllers: [FolderController],

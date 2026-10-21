@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,6 +12,12 @@ import { FileDoc, FileDocument, FileType } from './schemas/file.schema.js';
 import { Folder, FolderDocument } from '../folders/schemas/folder.schema.js';
 import { User, UserDocument } from '../user/schemas/user.schema.js';
 import { GridFsService } from './gridfs.service.js';
+import {
+  Share,
+  ShareDocument,
+  SharePermission,
+  ShareResourceType,
+} from '../shares/schemas/share.schema.js';
 
 @Injectable()
 export class FileService {
@@ -19,6 +26,7 @@ export class FileService {
     @InjectModel(Folder.name)
     private readonly folderModel: Model<FolderDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(Share.name) private readonly shareModel: Model<ShareDocument>,
     private readonly gridFsService: GridFsService,
   ) {}
 
@@ -110,13 +118,16 @@ export class FileService {
     return fileDoc;
   }
 
-  async download(userId: string, fileId: string) {
-    const ownerId = new Types.ObjectId(userId);
+  private async findFileWithAccess(
+    userId: string,
+    fileId: string,
+    requiredPermission?: SharePermission,
+  ): Promise<{ fileDoc: FileDocument; isOwner: boolean }> {
+    const userObjId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
     const fileDoc = await this.fileModel.findOne({
       _id: targetFileId,
-      ownerId,
       deletedAt: null,
     });
 
@@ -124,26 +135,44 @@ export class FileService {
       throw new NotFoundException('Archivo no encontrado');
     }
 
+    if (fileDoc.ownerId.equals(userObjId)) {
+      return { fileDoc, isOwner: true };
+    }
+
+    const share = await this.shareModel.findOne({
+      resourceType: ShareResourceType.File,
+      resourceId: targetFileId,
+      sharedWithId: userObjId,
+    });
+
+    if (!share) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
+
+    if (requiredPermission === SharePermission.Edit && share.permission !== SharePermission.Edit) {
+      throw new ForbiddenException('No tienes permisos de edición para este archivo');
+    }
+
+    if (
+      requiredPermission === SharePermission.Comment &&
+      share.permission !== SharePermission.Comment &&
+      share.permission !== SharePermission.Edit
+    ) {
+      throw new ForbiddenException('No tienes permisos para modificar etiquetas');
+    }
+
+    return { fileDoc, isOwner: false };
+  }
+
+  async download(userId: string, fileId: string) {
+    const { fileDoc } = await this.findFileWithAccess(userId, fileId);
     const stream = this.gridFsService.download(fileDoc.gridFsId);
     return { fileDoc, stream };
   }
 
   async getRaw(userId: string, fileId: string) {
-    const ownerId = new Types.ObjectId(userId);
-    const targetFileId = new Types.ObjectId(fileId);
-
-    const fileDoc = await this.fileModel.findOne({
-      _id: targetFileId,
-      ownerId,
-      deletedAt: null,
-    });
-
-    if (!fileDoc) {
-      throw new NotFoundException('Archivo no encontrado');
-    }
-
+    const { fileDoc } = await this.findFileWithAccess(userId, fileId);
     const buffer = await this.gridFsService.readToBuffer(fileDoc.gridFsId);
-
     return { file: fileDoc, content: buffer.toString('utf-8') };
   }
 
@@ -243,23 +272,29 @@ export class FileService {
   }
 
   async moveToTrash(userId: string, fileId: string): Promise<FileDocument> {
-    const ownerId = new Types.ObjectId(userId);
-    const targetFileId = new Types.ObjectId(fileId);
-
-    const fileDoc = await this.fileModel.findOne({
-      _id: targetFileId,
-      ownerId,
-      deletedAt: null,
-    });
-
-    if (!fileDoc) {
-      throw new NotFoundException('Archivo no encontrado');
-    }
+    const { fileDoc } = await this.findFileWithAccess(userId, fileId, SharePermission.Edit);
 
     fileDoc.deletedAt = new Date();
     // asignamos su propio ID para determinar que es raiz
     fileDoc.trashRootId = fileDoc._id;
 
+    return fileDoc.save();
+  }
+
+  async updateTags(userId: string, fileId: string, rawTags?: string[] | string): Promise<FileDocument> {
+    const { fileDoc } = await this.findFileWithAccess(userId, fileId, SharePermission.Comment);
+
+    let tags: string[] = [];
+    if (Array.isArray(rawTags)) {
+      tags = rawTags.map((t) => t.trim()).filter(Boolean);
+    } else if (typeof rawTags === 'string') {
+      tags = rawTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+
+    fileDoc.tags = tags;
     return fileDoc.save();
   }
   async getRecent(userId: string, limit = 10): Promise<FileDocument[]> {

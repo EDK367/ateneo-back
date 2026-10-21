@@ -6,6 +6,7 @@ import { GridFsService } from './gridfs.service.js';
 import { FileDoc, FileSchema } from './schemas/file.schema.js';
 import { Folder, FolderSchema } from '../folders/schemas/folder.schema.js';
 import { User, UserSchema } from '../user/schemas/user.schema.js';
+import { Share, ShareSchema } from '../shares/schemas/share.schema.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { User, UserSchema } from '../user/schemas/user.schema.js';
       { name: FileDoc.name, schema: FileSchema },
       { name: Folder.name, schema: FolderSchema },
       { name: User.name, schema: UserSchema },
+      { name: Share.name, schema: ShareSchema },
     ]),
   ],
   controllers: [FileController],
