@@ -53,9 +53,20 @@ export class FileService {
     const ownerId = new Types.ObjectId(userId);
     let targetFolderId: Types.ObjectId | null = null;
 
+    const cleanFolderId =
+      folderId &&
+      folderId !== 'null' &&
+      folderId !== 'undefined' &&
+      folderId.trim() !== ''
+        ? folderId.trim()
+        : null;
+
     // pertenece a una carpeta y no a la raiz
-    if (folderId) {
-      targetFolderId = new Types.ObjectId(folderId);
+    if (cleanFolderId) {
+      if (!Types.ObjectId.isValid(cleanFolderId)) {
+        throw new NotFoundException('Carpeta destino no encontrada');
+      }
+      targetFolderId = new Types.ObjectId(cleanFolderId);
       const folder = await this.folderModel.findOne({
         _id: targetFolderId,
         ownerId,
@@ -123,6 +134,9 @@ export class FileService {
     fileId: string,
     requiredPermission?: SharePermission,
   ): Promise<{ fileDoc: FileDocument; isOwner: boolean }> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(fileId)) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
     const userObjId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
@@ -181,6 +195,9 @@ export class FileService {
     fileId: string,
     newName: string,
   ): Promise<FileDocument> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(fileId)) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
     const trimmed = newName.trim();
@@ -226,6 +243,9 @@ export class FileService {
     fileId: string,
     newFolderId?: string | null,
   ): Promise<FileDocument> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(fileId)) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
     const ownerId = new Types.ObjectId(userId);
     const targetFileId = new Types.ObjectId(fileId);
 
@@ -240,8 +260,19 @@ export class FileService {
     }
 
     let nextFolderId: Types.ObjectId | null = null;
-    if (newFolderId) {
-      nextFolderId = new Types.ObjectId(newFolderId);
+    const cleanNewFolderId =
+      newFolderId &&
+      newFolderId !== 'null' &&
+      newFolderId !== 'undefined' &&
+      newFolderId.trim() !== ''
+        ? newFolderId.trim()
+        : null;
+
+    if (cleanNewFolderId) {
+      if (!Types.ObjectId.isValid(cleanNewFolderId)) {
+        throw new NotFoundException('Carpeta destino no encontrada');
+      }
+      nextFolderId = new Types.ObjectId(cleanNewFolderId);
       const folder = await this.folderModel.findOne({
         _id: nextFolderId,
         ownerId,
@@ -307,5 +338,49 @@ export class FileService {
       .sort({ updatedAt: -1 })
       .limit(limit)
       .exec();
+  }
+
+  async search(
+    userId: string,
+    q?: string,
+    type?: string,
+    tag?: string,
+    folderId?: string,
+  ): Promise<FileDocument[]> {
+    const ownerId = new Types.ObjectId(userId);
+    const filter: any = {
+      ownerId,
+      deletedAt: null,
+    };
+
+    if (type && (type === 'txt' || type === 'md')) {
+      filter.type = type;
+    }
+
+    const cleanFolderId =
+      folderId &&
+      folderId !== 'null' &&
+      folderId !== 'undefined' &&
+      folderId.trim() !== ''
+        ? folderId.trim()
+        : null;
+
+    if (cleanFolderId && Types.ObjectId.isValid(cleanFolderId)) {
+      filter.folderId = new Types.ObjectId(cleanFolderId);
+    }
+
+    if (tag && tag.trim().length > 0) {
+      filter.tags = tag.trim();
+    }
+
+    if (q && q.trim().length > 0) {
+      const term = q.trim();
+      filter.$or = [
+        { name: { $regex: term, $options: 'i' } },
+        { tags: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    return this.fileModel.find(filter).sort({ updatedAt: -1 }).exec();
   }
 }

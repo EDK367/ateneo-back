@@ -50,6 +50,9 @@ export class TrashService {
   }
 
   async restore(userId: string, id: string, role?: string) {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Elemento no encontrado en la papelera');
+    }
     const ownerId = new Types.ObjectId(userId);
     const targetId = new Types.ObjectId(id);
 
@@ -176,6 +179,9 @@ export class TrashService {
   }
 
   async purge(userId: string, id: string, role?: string) {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Elemento no encontrado en la papelera');
+    }
     const ownerId = new Types.ObjectId(userId);
     const targetId = new Types.ObjectId(id);
 

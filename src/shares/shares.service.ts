@@ -245,8 +245,38 @@ export class SharesService {
       this.folderModel.find({ _id: { $in: folderIds }, deletedAt: null }).exec(),
     ]);
 
+    const folderIdsList = folders.map((f) => f._id);
+    let subfolderCounts: { _id: Types.ObjectId; count: number }[] = [];
+    let folderFileCounts: { _id: Types.ObjectId; count: number }[] = [];
+
+    if (folderIdsList.length > 0) {
+      [subfolderCounts, folderFileCounts] = await Promise.all([
+        this.folderModel.aggregate([
+          { $match: { parentId: { $in: folderIdsList }, deletedAt: null } },
+          { $group: { _id: '$parentId', count: { $sum: 1 } } },
+        ]),
+        this.fileModel.aggregate([
+          { $match: { folderId: { $in: folderIdsList }, deletedAt: null } },
+          { $group: { _id: '$folderId', count: { $sum: 1 } } },
+        ]),
+      ]);
+    }
+
+    const subMap = new Map<string, number>();
+    for (const s of subfolderCounts) subMap.set(s._id.toString(), s.count);
+    const fMap = new Map<string, number>();
+    for (const f of folderFileCounts) fMap.set(f._id.toString(), f.count);
+
     const fileMap = new Map(files.map((f) => [f._id.toString(), f]));
-    const folderMap = new Map(folders.map((f) => [f._id.toString(), f]));
+    const folderMap = new Map(
+      folders.map((f) => {
+        const fObj = f.toObject() as Record<string, any>;
+        const total =
+          (subMap.get(f._id.toString()) || 0) +
+          (fMap.get(f._id.toString()) || 0);
+        return [f._id.toString(), Object.assign({}, fObj, { itemCount: total })];
+      }),
+    );
 
     return shares
       .map((share) => {

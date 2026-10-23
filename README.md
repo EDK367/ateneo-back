@@ -263,6 +263,7 @@ Todos los endpoints (con excepción del inicio de sesión y registro) requieren 
 | **Folders**| `PATCH` | `/api/v1/folders/:id/rename`| Autenticado | Renombramiento de carpeta existente |
 | **Folders**| `DELETE`| `/api/v1/folders/:id` | Autenticado | Envío de carpeta y sus descendientes a papelera |
 | **Files** | `POST` | `/api/v1/files/upload` | Autenticado | Carga multipart de archivo (.txt / .md) hacia GridFS |
+| **Files** | `GET` | `/api/v1/files/search` | Autenticado | Búsqueda y filtrado de archivos por término, tipo y etiquetas |
 | **Files** | `GET` | `/api/v1/files/recent` | Autenticado | Consulta de los archivos recientes del usuario |
 | **Files** | `GET` | `/api/v1/files/:id/raw` | Autenticado | Previsualización en texto crudo del archivo |
 | **Files** | `GET` | `/api/v1/files/:id/download`| Autenticado| Descarga directa en streaming binario con headers |
@@ -282,6 +283,16 @@ Todos los endpoints (con excepción del inicio de sesión y registro) requieren 
 | **Activity**| `GET`| `/api/v1/activity` | Autenticado | Consulta cronológica de acciones y auditoría |
 | **Reports**| `GET` | `/api/v1/report/stats` | Autenticado | Métricas de uso de cuota y desglose del usuario |
 | **Reports**| `GET` | `/api/v1/report/global` | Admin | Métricas globales del cluster para administradores |
+| **Reports**| `GET` | `/api/v1/report/by-type` | Autenticado | Cantidad de archivos agrupados por tipo (.txt, .md) |
+| **Reports**| `GET` | `/api/v1/report/by-date-range` | Autenticado | Archivos almacenados dentro de un rango de fechas |
+| **Reports**| `GET` | `/api/v1/report/most-active-files` | Autenticado | Archivos con mayor cantidad de operaciones registradas |
+| **Reports**| `GET` | `/api/v1/report/top-users-files` | Autenticado | Top 10 usuarios con mayor cantidad de archivos |
+| **Reports**| `GET` | `/api/v1/report/top-users-shares` | Autenticado | Usuarios con mayor cantidad de recursos compartidos |
+| **Reports**| `GET` | `/api/v1/report/shared-by-user/:userId`| Autenticado| Recursos compartidos por un usuario seleccionado |
+| **Reports**| `GET` | `/api/v1/report/shared-with-user/:userId`| Autenticado| Recursos recibidos por un usuario seleccionado |
+| **Reports**| `GET` | `/api/v1/report/never-shared` | Autenticado | Archivos que nunca han sido compartidos |
+| **Reports**| `GET` | `/api/v1/report/folders-most-files` | Autenticado | Carpetas con mayor cantidad de archivos |
+| **Reports**| `GET` | `/api/v1/report/files-most-shared-users`| Autenticado| Archivos compartidos con mayor cantidad de usuarios |
 
 ---
 

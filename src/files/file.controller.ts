@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Res,
   StreamableFile,
   UploadedFile,
@@ -16,6 +17,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -55,6 +57,22 @@ export class FileController {
     @Body() dto: UploadFileDto,
   ) {
     return this.fileService.upload(user.userId, file, dto.folderId, dto.tags);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Buscar y filtrar archivos por término, tipo o etiqueta' })
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'type', required: false, type: String })
+  @ApiQuery({ name: 'tag', required: false, type: String })
+  @ApiQuery({ name: 'folderId', required: false, type: String })
+  searchFiles(
+    @CurrentUser() user: any,
+    @Query('q') q?: string,
+    @Query('type') type?: string,
+    @Query('tag') tag?: string,
+    @Query('folderId') folderId?: string,
+  ) {
+    return this.fileService.search(user.userId, q, type, tag, folderId);
   }
 
   @Get('recent')

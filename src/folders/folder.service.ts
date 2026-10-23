@@ -31,9 +31,20 @@ export class FolderService {
     let parentId: Types.ObjectId | null = null;
     let ancestors: Types.ObjectId[] = [];
 
-    if (dto.parentId) {
+    const cleanParentId =
+      dto.parentId &&
+      dto.parentId !== 'null' &&
+      dto.parentId !== 'undefined' &&
+      dto.parentId.trim() !== ''
+        ? dto.parentId.trim()
+        : null;
+
+    if (cleanParentId) {
+      if (!Types.ObjectId.isValid(cleanParentId)) {
+        throw new NotFoundException('Carpeta padre no encontrada');
+      }
       // si se crea dentro de otro folder lo buscamos y verificamos que no este eliminado
-      parentId = new Types.ObjectId(dto.parentId);
+      parentId = new Types.ObjectId(cleanParentId);
       const parent = await this.folderModel.findOne({
         _id: parentId,
         ownerId,
@@ -69,31 +80,59 @@ export class FolderService {
     });
   }
 
-  async getContent(userId: string, folderId?: string) {
+  async getContent(userId: string, folderId?: string, role?: string) {
 
     const ownerId = new Types.ObjectId(userId);
     let currentFolder: FolderDocument | null = null;
-    const parentId = folderId ? new Types.ObjectId(folderId) : null;
+    const cleanFolderId =
+      folderId &&
+      folderId !== 'null' &&
+      folderId !== 'undefined' &&
+      folderId.trim() !== ''
+        ? folderId.trim()
+        : null;
+
+    if (cleanFolderId && !Types.ObjectId.isValid(cleanFolderId)) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
+
+    const parentId = cleanFolderId ? new Types.ObjectId(cleanFolderId) : null;
 
     if (parentId) {
-      currentFolder = await this.folderModel.findOne({
-        _id: parentId,
-        ownerId,
-        deletedAt: null,
-      });
-
-      if (!currentFolder) {
-        const share = await this.shareModel.findOne({
-          resourceType: ShareResourceType.Folder,
-          resourceId: parentId,
-          sharedWithId: ownerId,
+      if (role === 'admin') {
+        currentFolder = await this.folderModel.findOne({
+          _id: parentId,
+          deletedAt: null,
+        });
+      } else {
+        currentFolder = await this.folderModel.findOne({
+          _id: parentId,
+          ownerId,
+          deletedAt: null,
         });
 
-        if (share) {
-          currentFolder = await this.folderModel.findOne({
+        if (!currentFolder) {
+          const candidateFolder = await this.folderModel.findOne({
             _id: parentId,
             deletedAt: null,
           });
+
+          if (candidateFolder) {
+            const folderIdsToCheck = [
+              candidateFolder._id,
+              ...(candidateFolder.ancestors || []),
+            ];
+
+            const share = await this.shareModel.findOne({
+              resourceType: ShareResourceType.Folder,
+              resourceId: { $in: folderIdsToCheck },
+              sharedWithId: ownerId,
+            });
+
+            if (share) {
+              currentFolder = candidateFolder;
+            }
+          }
         }
       }
 
@@ -122,14 +161,58 @@ export class FolderService {
       .sort({ name: 1 })
       .exec();
 
+    const folderIds = folders.map((f) => f._id);
+    let subfolderCounts: { _id: Types.ObjectId; count: number }[] = [];
+    let fileCounts: { _id: Types.ObjectId; count: number }[] = [];
+
+    if (folderIds.length > 0) {
+      [subfolderCounts, fileCounts] = await Promise.all([
+        this.folderModel.aggregate([
+          { $match: { parentId: { $in: folderIds }, deletedAt: null } },
+          { $group: { _id: '$parentId', count: { $sum: 1 } } },
+        ]),
+        this.fileModel.aggregate([
+          { $match: { folderId: { $in: folderIds }, deletedAt: null } },
+          { $group: { _id: '$folderId', count: { $sum: 1 } } },
+        ]),
+      ]);
+    }
+
+    const subfolderMap = new Map<string, number>();
+    for (const item of subfolderCounts) {
+      subfolderMap.set(item._id.toString(), item.count);
+    }
+
+    const fileMap = new Map<string, number>();
+    for (const item of fileCounts) {
+      fileMap.set(item._id.toString(), item.count);
+    }
+
+    const foldersWithItemCount = folders.map((f) => {
+      const fObj = f.toObject() as Record<string, any>;
+      const count =
+        (subfolderMap.get(f._id.toString()) || 0) +
+        (fileMap.get(f._id.toString()) || 0);
+      return Object.assign({}, fObj, { itemCount: count });
+    });
+
+    const currentFolderWithItemCount = currentFolder
+      ? Object.assign({}, currentFolder.toObject() as Record<string, any>, {
+          itemCount: folders.length + files.length,
+        })
+      : null;
+
     return {
-      currentFolder,
-      folders,
+      currentFolder: currentFolderWithItemCount,
+      folders: foldersWithItemCount,
       files,
     };
   }
 
   async move(userId: string, folderId: string, newParentId?: string | null): Promise<FolderDocument> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(folderId)) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
 
     const ownerId = new Types.ObjectId(userId);
     const targetFolderId = new Types.ObjectId(folderId);
@@ -147,15 +230,27 @@ export class FolderService {
     let nextParentId: Types.ObjectId | null = null;
     let newAncestors: Types.ObjectId[] = [];
 
-    if (newParentId) {
+    const cleanNewParentId =
+      newParentId &&
+      newParentId !== 'null' &&
+      newParentId !== 'undefined' &&
+      newParentId.trim() !== ''
+        ? newParentId.trim()
+        : null;
+
+    if (cleanNewParentId) {
       // evitar movimiento circular
-      if (folderId === newParentId) {
+      if (folderId === cleanNewParentId) {
         throw new BadRequestException(
           'No puedes mover una carpeta dentro de sí misma',
         );
       }
 
-      nextParentId = new Types.ObjectId(newParentId);
+      if (!Types.ObjectId.isValid(cleanNewParentId)) {
+        throw new NotFoundException('Carpeta destino no encontrada');
+      }
+
+      nextParentId = new Types.ObjectId(cleanNewParentId);
       const targetParent = await this.folderModel.findOne({
         _id: nextParentId,
         ownerId,
@@ -216,6 +311,9 @@ export class FolderService {
   }
 
   async rename(userId: string, folderId: string, name: string): Promise<FolderDocument> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(folderId)) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
 
     const ownerId = new Types.ObjectId(userId);
     const targetFolderId = new Types.ObjectId(folderId);
@@ -247,6 +345,9 @@ export class FolderService {
   }
 
   async moveToTrash(userId: string, folderId: string): Promise<FolderDocument> {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(folderId)) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
 
     const ownerId = new Types.ObjectId(userId);
     const targetFolderId = new Types.ObjectId(folderId);

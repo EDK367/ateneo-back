@@ -33,7 +33,7 @@ export class FolderController {
   @ApiOperation({ summary: 'Obtener contenido de una carpeta o de la raíz' })
   @ApiQuery({ name: 'folderId', required: false, type: String })
   findContent(@CurrentUser() user: any, @Query('folderId') folderId?: string) {
-    return this.folderService.getContent(user.userId, folderId);
+    return this.folderService.getContent(user.userId, folderId, user.role);
   }
 
   @Patch(':id/move')

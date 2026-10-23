@@ -110,13 +110,13 @@ export class SeedService implements OnApplicationBootstrap {
       },
       {
         key: 'maria',
-        username: 'maria.lopez',
+        username: 'maria',
         email: 'maria.lopez@ateneo.com',
         role: Role.User,
       },
       {
         key: 'carlos',
-        username: 'carlos.mendoza',
+        username: 'carlos',
         email: 'carlos.mendoza@ateneo.com',
         role: Role.User,
       },

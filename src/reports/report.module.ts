@@ -6,6 +6,7 @@ import { FileDoc, FileSchema } from '../files/schemas/file.schema.js';
 import { Folder, FolderSchema } from '../folders/schemas/folder.schema.js';
 import { Share, ShareSchema } from '../shares/schemas/share.schema.js';
 import { User, UserSchema } from '../user/schemas/user.schema.js';
+import { Activity, ActivitySchema } from '../activity/schemas/activity.schema.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { User, UserSchema } from '../user/schemas/user.schema.js';
       { name: Folder.name, schema: FolderSchema },
       { name: Share.name, schema: ShareSchema },
       { name: User.name, schema: UserSchema },
+      { name: Activity.name, schema: ActivitySchema },
     ]),
   ],
   controllers: [ReportController],
