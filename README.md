@@ -321,8 +321,8 @@ Todas las cuentas tienen configurada la contraseña uniforme: `Password`
 | :--- | :--- | :--- | :--- |
 | `admin` | `admin@ateneo.com` | `admin` | Administrador general de plataforma y políticas |
 | `edk` | `edk@ateneo.com` | `user` | Usuario principal docente e investigador |
-| `maria.lopez` | `maria.lopez@ateneo.com`| `user` | Coordinadora de vinculación comunitaria y extensión |
-| `carlos.mendoza`| `carlos.mendoza@ateneo.com`| `user`| Investigador y autor de publicaciones científicas |
+| `maria` | `maria.lopez@ateneo.com`| `user` | Coordinadora de vinculación comunitaria y extensión |
+| `carlos`| `carlos.mendoza@ateneo.com`| `user`| Investigador y autor de publicaciones científicas |
 | `user` | `user@ateneo.com` | `user` | Usuario estándar para verificación de permisos |
 
 #### Estructura de datos generada:
